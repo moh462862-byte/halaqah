@@ -195,6 +195,7 @@ tr.absent .cinp,tr.absent .gsel{visibility:hidden;}
   <div class="panel" id="h1-p-roster">
     <div class="bar nopr">
       <button class="btn btn-g" onclick="saveRoster(1)">💾 حفظ الأسماء</button>
+      <button class="btn btn-b" onclick="sortRoster(1)">🔤 ترتيب أبجدي</button>
       <button class="btn btn-r" onclick="clearRoster(1)">🗑️ مسح</button>
       <span class="ok" id="ok-r1">✅ تم الحفظ</span>
     </div>
@@ -246,6 +247,7 @@ tr.absent .cinp,tr.absent .gsel{visibility:hidden;}
   <div class="panel" id="h2-p-roster">
     <div class="bar nopr">
       <button class="btn btn-g" onclick="saveRoster(2)">💾 حفظ الأسماء</button>
+      <button class="btn btn-b" onclick="sortRoster(2)">🔤 ترتيب أبجدي</button>
       <button class="btn btn-r" onclick="clearRoster(2)">🗑️ مسح</button>
       <span class="ok" id="ok-r2">✅ تم الحفظ</span>
     </div>
@@ -542,6 +544,33 @@ function buildDay(h){
       tb.appendChild(tr);
     })(i);
   }
+}
+
+
+function sortRoster(h){
+  // first collect current inputs
+  var cards=document.querySelectorAll('#h'+h+'-roster .rcard');
+  cards.forEach(function(card,i){
+    var ni=card.querySelector('.rinp');
+    var pi=card.querySelector('.rpinp');
+    names[h][i]={n:ni?ni.value:'',p:pi?pi.value.replace(/\D/g,''):''};
+  });
+  // separate filled and empty
+  var filled=names[h].filter(function(o){return o.n.trim()!=='';});
+  var empty=names[h].filter(function(o){return o.n.trim()==='';});
+  // sort filled alphabetically (Arabic)
+  filled.sort(function(a,b){
+    var an=a.n.replace(/^ال/,'').replace(/[أإآ]/g,'ا');
+    var bn=b.n.replace(/^ال/,'').replace(/[أإآ]/g,'ا');
+    return an.localeCompare(bn,'ar');
+  });
+  // merge: filled first then empty
+  names[h]=filled.concat(empty);
+  while(names[h].length<20)names[h].push({n:'',p:''});
+  localStorage.setItem(rk(h),JSON.stringify(names[h]));
+  buildRoster(h);
+  buildDay(h);
+  flash('ok-r'+h);
 }
 
 function wireTeacher(h){
