@@ -195,6 +195,7 @@ tr.absent .cinp,tr.absent .gsel{visibility:hidden;}
   <div class="panel" id="h1-p-roster">
     <div class="bar nopr">
       <button class="btn btn-g" onclick="saveRoster(1)">💾 حفظ الأسماء</button>
+      <button class="btn btn-b" onclick="sortRoster(1)">🔤 ترتيب أبجدي</button>
       <button class="btn btn-r" onclick="clearRoster(1)">🗑️ مسح</button>
       <span class="ok" id="ok-r1">✅ تم الحفظ</span>
     </div>
@@ -246,6 +247,7 @@ tr.absent .cinp,tr.absent .gsel{visibility:hidden;}
   <div class="panel" id="h2-p-roster">
     <div class="bar nopr">
       <button class="btn btn-g" onclick="saveRoster(2)">💾 حفظ الأسماء</button>
+      <button class="btn btn-b" onclick="sortRoster(2)">🔤 ترتيب أبجدي</button>
       <button class="btn btn-r" onclick="clearRoster(2)">🗑️ مسح</button>
       <span class="ok" id="ok-r2">✅ تم الحفظ</span>
     </div>
@@ -542,6 +544,75 @@ function buildDay(h){
       tb.appendChild(tr);
     })(i);
   }
+}
+
+
+function sortRoster(h){
+  // Step 1: save roster inputs first
+  var cards=document.querySelectorAll('#h'+h+'-roster .rcard');
+  cards.forEach(function(card,i){
+    var ni=card.querySelector('.rinp');
+    var pi=card.querySelector('.rpinp');
+    if(!names[h][i]) names[h][i]={n:'',p:''};
+    names[h][i].n=ni?ni.value:'';
+    names[h][i].p=pi?pi.value.replace(/\D/g,''):'';
+  });
+
+  // Step 2: read day data from localStorage (not from hidden table)
+  var dateVal=document.getElementById('h'+h+'-date').value||'x';
+  var dayKey='hq'+h+'_day_'+dateVal;
+  var savedDay={};
+  try{
+    var raw=localStorage.getItem(dayKey);
+    if(raw) savedDay=JSON.parse(raw).data||{};
+  }catch(e){}
+
+  // Step 3: build combined array
+  var arr=[];
+  for(var i=0;i<20;i++){
+    arr.push({
+      n:names[h][i]?names[h][i].n||''  :'',
+      p:names[h][i]?names[h][i].p||''  :'',
+      d:savedDay[i]||{}
+    });
+  }
+
+  // Step 4: split filled vs empty
+  var filled=arr.filter(function(x){return x.n.trim()!=='';});
+  var empty =arr.filter(function(x){return x.n.trim()==='';});
+
+  // Step 5: sort alphabetically
+  filled.sort(function(a,b){
+    var an=a.n.replace(/^ال/,'').replace(/[أإآ]/g,'ا');
+    var bn=b.n.replace(/^ال/,'').replace(/[أإآ]/g,'ا');
+    return an.localeCompare(bn,'ar');
+  });
+
+  // Step 6: merge
+  var sorted=filled.concat(empty);
+  while(sorted.length<20) sorted.push({n:'',p:'',d:{}});
+
+  // Step 7: write back to names and day
+  names[h]=[];
+  var newDayData={};
+  for(var j=0;j<20;j++){
+    names[h][j]={n:sorted[j].n, p:sorted[j].p};
+    newDayData[j]=sorted[j].d;
+  }
+
+  // Step 8: save roster
+  localStorage.setItem(rk(h), JSON.stringify(names[h]));
+
+  // Step 9: save reordered day data back to localStorage
+  var t=document.getElementById('h'+h+'-teacher').value;
+  var hn=document.getElementById('h'+h+'-name').value;
+  localStorage.setItem(dayKey, JSON.stringify({data:newDayData,teacher:t,halaqah:hn}));
+  day[h]=newDayData;
+
+  // Step 10: rebuild UI
+  buildRoster(h);
+  buildDay(h);
+  flash('ok-r'+h);
 }
 
 function wireTeacher(h){
